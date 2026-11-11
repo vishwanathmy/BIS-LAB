@@ -1,0 +1,103 @@
+
+import math
+import numpy as np
+import random
+from sklearn.datasets import load_breast_cancer
+from sklearn.svm import SVC
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+
+random.seed(42)
+np.random.seed(42)
+
+# Load dataset
+data = load_breast_cancer()
+X = data.data
+y = data.target
+
+# Parameters
+N = 8
+ITERATIONS = 10
+PA = 0.25
+DIM = 2
+
+# Levy flight
+def levy_flight():
+    beta = 1.5
+
+    sigma = (
+        math.gamma(1 + beta) * math.sin(math.pi * beta / 2) /
+        (math.gamma((1 + beta) / 2) * beta *
+         2 ** ((beta - 1) / 2))
+    ) ** (1 / beta)
+
+    u = np.random.normal(0, sigma, DIM)
+    v = np.random.normal(0, 1, DIM)
+
+    return u / (np.abs(v) ** (1 / beta))
+
+# Fitness function
+def fitness(nest):
+    C = 10 ** nest[0]
+    gamma = 10 ** nest[1]
+
+    model = make_pipeline(
+        StandardScaler(),
+        SVC(C=C, gamma=gamma)
+    )
+
+    cv = StratifiedKFold(
+        n_splits=3, shuffle=True, random_state=42
+    )
+
+    score = cross_val_score(
+        model, X, y, cv=cv, scoring='accuracy'
+    )
+
+    return score.mean()
+
+# Generate random nests
+nests = np.random.uniform([-3, -4], [3, 1], (N, DIM))
+scores = np.array([fitness(nest) for nest in nests])
+
+# Cuckoo Search
+for iteration in range(ITERATIONS):
+
+    # Generate new cuckoo
+    k = random.randrange(N)
+    new_nest = nests[k] + 0.1 * levy_flight()
+    new_nest = np.clip(new_nest, [-3, -4], [3, 1])
+
+    new_score = fitness(new_nest)
+
+    # Replace nest if better
+    j = random.randrange(N)
+
+    if new_score > scores[j]:
+        nests[j] = new_nest
+        scores[j] = new_score
+
+    # Abandon poor nests
+    count = int(PA * N)
+    worst = np.argsort(scores)[:count]
+
+    for i in worst:
+        nests[i] = np.random.uniform([-3, -4], [3, 1])
+        scores[i] = fitness(nests[i])
+
+    # Find best nest
+    best = np.argmax(scores)
+
+    print("Iteration:", iteration + 1,
+          "Best Accuracy:", round(scores[best], 4))
+
+# Final result
+best = np.argmax(scores)
+
+best_C = 10 ** nests[best][0]
+best_gamma = 10 ** nests[best][1]
+
+print("\nBest C:", round(best_C, 5))
+print("Best Gamma:", round(best_gamma, 7))
+print("Best Accuracy:", round(scores[best], 4))

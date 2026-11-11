@@ -1,0 +1,115 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# ---------------------------------------------------------
+# 1. Define the Problem
+# ---------------------------------------------------------
+def fitness_function(chromosome):
+    x, y = chromosome
+    return -(x**2 + y**2) + 100
+
+# ---------------------------------------------------------
+# 2. Initialize Parameters
+# ---------------------------------------------------------
+POPULATION_SIZE = 50       # Number of individuals per generation
+GENES = 2                  # Number of variables (x and y)
+GENERATIONS = 100          # How many iterations to run
+MUTATION_RATE = 0.1        # Probability of a gene mutating
+CROSSOVER_RATE = 0.8       # Probability of crossover between parents
+BOUNDS = [-10.0, 10.0]     # Search space limits for x and y
+
+# ---------------------------------------------------------
+# 3. Create Initial Population
+# ---------------------------------------------------------
+def create_population(size, bounds):
+    # Generates a matrix of random floats within the given bounds
+    return np.random.uniform(bounds[0], bounds[1], (size, GENES))
+
+# ---------------------------------------------------------
+# 5. Selection (Tournament Selection)
+# ---------------------------------------------------------
+def selection(population, fitnesses, k=3):
+    # Pick 'k' random individuals, let them compete, and return the fittest.
+    selected_indices = np.random.choice(len(population), k, replace=False)
+    best_index = selected_indices[np.argmax(fitnesses[selected_indices])]
+    return population[best_index]
+
+# ---------------------------------------------------------
+# 6. Crossover (Blend Crossover)
+# ---------------------------------------------------------
+def crossover(parent1, parent2):
+    # Mixes the genes of two parents to create offspring.
+    if np.random.rand() < CROSSOVER_RATE:
+        alpha = np.random.rand()
+        child1 = alpha * parent1 + (1 - alpha) * parent2
+        child2 = (1 - alpha) * parent1 + alpha * parent2
+        return child1, child2
+    return parent1.copy(), parent2.copy()
+
+# ---------------------------------------------------------
+# 7. Mutation (Gaussian Noise)
+# ---------------------------------------------------------
+def mutation(child, bounds):
+    # Introduces random changes to maintain genetic diversity.
+    for i in range(len(child)):
+        if np.random.rand() < MUTATION_RATE:
+            # Add random noise to the gene
+            child[i] += np.random.normal(0, 1.0)
+            # Ensure the mutated gene stays within bounds
+            child[i] = np.clip(child[i], bounds[0], bounds[1])
+    return child
+
+# ---------------------------------------------------------
+# 8 & 9. Iteration and Output (Main GA Loop)
+# ---------------------------------------------------------
+def genetic_algorithm():
+    population = create_population(POPULATION_SIZE, BOUNDS)
+    best_solution = None
+    best_fitness = -np.inf
+    history = []
+
+    for generation in range(GENERATIONS):
+        # 4. Evaluate Fitness
+        fitnesses = np.array([fitness_function(ind) for ind in population])
+
+        # Track the absolute best solution found so far
+        current_best_idx = np.argmax(fitnesses)
+        if fitnesses[current_best_idx] > best_fitness:
+            best_fitness = fitnesses[current_best_idx]
+            best_solution = population[current_best_idx].copy()
+
+        history.append(best_fitness)
+
+        # Create the next generation
+        next_population = []
+        for _ in range(POPULATION_SIZE // 2):
+            # Select two parents
+            p1 = selection(population, fitnesses)
+            p2 = selection(population, fitnesses)
+
+            # Create two children via crossover
+            c1, c2 = crossover(p1, p2)
+
+            # Mutate the children
+            c1 = mutation(c1, BOUNDS)
+            c2 = mutation(c2, BOUNDS)
+
+            # Add to the new population pool
+            next_population.extend([c1, c2])
+
+        population = np.array(next_population)
+
+    return best_solution, best_fitness, history
+
+# Execute and visualize
+best_sol, best_fit, progress = genetic_algorithm()
+
+print(f"Optimal Variables (x, y): {best_sol}")
+print(f"Maximum Fitness Achieved: {best_fit}")
+
+plt.plot(progress, color='green', linewidth=2)
+plt.title("Genetic Algorithm Convergence")
+plt.xlabel("Generation")
+plt.ylabel("Best Fitness Score")
+plt.grid(True)
+plt.show()

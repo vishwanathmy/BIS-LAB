@@ -1,0 +1,149 @@
+import random
+import matplotlib.pyplot as plt
+
+def objective_function(x):
+    return -x**2 + 5*x + 20
+
+num_particles = 9
+max_iterations = 50
+
+w = 0.7
+c1 = 1.5
+c2 = 1.5
+
+lower_bound = -10
+upper_bound = 10
+
+
+positions = [
+    random.uniform(lower_bound, upper_bound)
+    for _ in range(num_particles)
+]
+
+velocities = [
+    random.uniform(-1, 1)
+    for _ in range(num_particles)
+]
+
+
+pbest_positions = positions.copy()
+
+pbest_values = [
+    objective_function(x)
+    for x in positions
+]
+
+
+# --------------------------------------------
+# 5. Initialize Global Best (gbest)
+# --------------------------------------------
+
+best_index = pbest_values.index(max(pbest_values))
+
+gbest_position = pbest_positions[best_index]
+gbest_value = pbest_values[best_index]
+
+
+# Store global best values for plotting
+best_values_history = []
+
+
+# --------------------------------------------
+# 6. PSO Iterations
+# --------------------------------------------
+
+for iteration in range(max_iterations):
+
+    for i in range(num_particles):
+
+        # Generate random numbers
+        r1 = random.random()
+        r2 = random.random()
+
+        # ------------------------------------
+        # Update Velocity
+        # ------------------------------------
+        velocities[i] = (
+            w * velocities[i]
+            + c1 * r1 *
+            (pbest_positions[i] - positions[i])
+            + c2 * r2 *
+            (gbest_position - positions[i])
+        )
+
+        # ------------------------------------
+        # Update Position
+        # ------------------------------------
+        positions[i] = positions[i] + velocities[i]
+
+        # Keep particle inside search space
+        positions[i] = max(
+            lower_bound,
+            min(upper_bound, positions[i])
+        )
+
+        # ------------------------------------
+        # Calculate Fitness
+        # ------------------------------------
+        fitness = objective_function(positions[i])
+
+        # ------------------------------------
+        # Update Personal Best
+        # ------------------------------------
+        if fitness > pbest_values[i]:
+            pbest_positions[i] = positions[i]
+            pbest_values[i] = fitness
+
+        # ------------------------------------
+        # Update Global Best
+        # ------------------------------------
+        if fitness > gbest_value:
+            gbest_position = positions[i]
+            gbest_value = fitness
+
+    # Store best value
+    best_values_history.append(gbest_value)
+
+    # Display iteration result
+    print(
+        f"Iteration {iteration + 1:2d}: "
+        f"Best Position = {gbest_position:.6f}, "
+        f"Best Fitness = {gbest_value:.6f}"
+    )
+
+
+# --------------------------------------------
+# 7. Final Result
+# --------------------------------------------
+
+print("\n====================================")
+print("FINAL RESULT")
+print("====================================")
+
+print(f"Best Position (x) : {gbest_position:.6f}")
+print(f"Best Fitness      : {gbest_value:.6f}")
+
+print("\nTheoretical Solution:")
+print("Best Position (x) : 2.5")
+print("Maximum Fitness    : 26.25")
+
+
+# --------------------------------------------
+# 8. Plot Convergence
+# --------------------------------------------
+
+plt.figure(figsize=(8, 5))
+
+plt.plot(
+    range(1, max_iterations + 1),
+    best_values_history,
+    marker='o',
+    markersize=3
+)
+
+plt.xlabel("Iteration")
+plt.ylabel("Best Fitness")
+plt.title("PSO Convergence")
+plt.grid(True)
+
+plt.show()

@@ -1,0 +1,99 @@
+import numpy as np
+
+# ============================================================
+# PARALLEL CELLULAR ALGORITHM
+# Minimize f(x) = (x - 2)^2
+# ============================================================
+
+# Parameters
+grid_size = 10
+iterations = 100
+lower_bound = -10
+upper_bound = 10
+
+
+# Fitness function
+def fitness(x):
+    return (x - 2) ** 2
+
+
+# Initialize population
+# 10 x 10 grid = 100 cells
+cells = np.random.uniform(
+    lower_bound,
+    upper_bound,
+    (grid_size, grid_size)
+)
+
+
+# Main algorithm
+for iteration in range(iterations):
+
+    # Evaluate fitness of all cells
+    fitness_values = fitness(cells)
+
+    # Create a new grid for updated states
+    new_cells = cells.copy()
+
+    # Update each cell
+    for i in range(grid_size):
+        for j in range(grid_size):
+
+            # Find the 3 x 3 neighborhood
+            neighbors = []
+
+            for di in [-1, 0, 1]:
+                for dj in [-1, 0, 1]:
+
+                    ni = i + di
+                    nj = j + dj
+
+                    # Check grid boundaries
+                    if 0 <= ni < grid_size and 0 <= nj < grid_size:
+                        neighbors.append((ni, nj))
+
+            # Find the best neighbor
+            best_neighbor = min(
+                neighbors,
+                key=lambda position: fitness(cells[position])
+            )
+
+            # Get the best neighbor's value
+            best_neighbor_value = cells[best_neighbor]
+
+            # Update cell by moving toward the best neighbor
+            new_cells[i, j] = (
+                cells[i, j] + best_neighbor_value
+            ) / 2
+
+            # Keep value within search space
+            new_cells[i, j] = np.clip(
+                new_cells[i, j],
+                lower_bound,
+                upper_bound
+            )
+
+    # Replace old population with new population
+    cells = new_cells
+
+
+# Find the best solution after all iterations
+fitness_values = fitness(cells)
+
+best_position = np.unravel_index(
+    np.argmin(fitness_values),
+    fitness_values.shape
+)
+
+best_x = cells[best_position]
+best_fitness = fitness_values[best_position]
+
+
+# Output
+print("Parallel Cellular Algorithm")
+print("---------------------------")
+print("Number of cells :", grid_size * grid_size)
+print("Grid size       :", f"{grid_size} x {grid_size}")
+print("Iterations      :", iterations)
+print("Best solution x :", best_x)
+print("Best fitness    :", best_fitness)

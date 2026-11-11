@@ -1,0 +1,88 @@
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. Objective function: Sphere function
+def objective(x):
+    return np.sum(x**2)
+
+# 2. GWO parameters
+lower, upper = -10, 10
+dim = 1
+wolves = 30
+iterations = 100
+
+# 3. Initialize wolf population
+X = np.random.uniform(lower, upper, (wolves, dim))
+
+# Initialize alpha, beta, delta
+alpha = np.zeros(dim)
+beta = np.zeros(dim)
+delta = np.zeros(dim)
+
+alpha_score = float("inf")
+beta_score = float("inf")
+delta_score = float("inf")
+
+history = []
+
+# 4. Main GWO loop
+for t in range(iterations):
+
+    # Evaluate fitness of every wolf
+    for i in range(wolves):
+        fitness = objective(X[i])
+
+        if fitness < alpha_score:
+            delta_score, delta = beta_score, beta.copy()
+            beta_score, beta = alpha_score, alpha.copy()
+            alpha_score, alpha = fitness, X[i].copy()
+
+        elif fitness < beta_score:
+            delta_score, delta = beta_score, beta.copy()
+            beta_score, beta = fitness, X[i].copy()
+
+        elif fitness < delta_score:
+            delta_score, delta = fitness, X[i].copy()
+
+    # Decrease a from 2 to 0
+    a = 2 - 2 * t / iterations
+
+    # Update positions of all wolves
+    for i in range(wolves):
+
+        # Influence of alpha
+        A1 = 2 * a * np.random.rand(dim) - a
+        C1 = 2 * np.random.rand(dim)
+        D_alpha = np.abs(C1 * alpha - X[i])
+        X1 = alpha - A1 * D_alpha
+
+        # Influence of beta
+        A2 = 2 * a * np.random.rand(dim) - a
+        C2 = 2 * np.random.rand(dim)
+        D_beta = np.abs(C2 * beta - X[i])
+        X2 = beta - A2 * D_beta
+
+        # Influence of delta
+        A3 = 2 * a * np.random.rand(dim) - a
+        C3 = 2 * np.random.rand(dim)
+        D_delta = np.abs(C3 * delta - X[i])
+        X3 = delta - A3 * D_delta
+
+        # Calculate new position
+        X[i] = (X1 + X2 + X3) / 3
+
+        # Keep wolves inside the search boundaries
+        X[i] = np.clip(X[i], lower, upper)
+
+    history.append(alpha_score)
+
+# 5. Display the best solution
+print("Grey Wolf Optimizer Results")
+print("---------------------------")
+print("Best position:", alpha)
+print("Best fitness:", alpha_score)
+print("Actual global minimum: 0 at [0, 0]")
+
+
+
